@@ -11,6 +11,11 @@ const SubTaskSchema = mongoose.Schema({
         ref : 'Task',
         required : true
     },
+    status : {
+        type : Number,
+        enum : [0,1],
+        default : 0
+    },
     created_at : {
         type : Date ,
         default : Date.now
