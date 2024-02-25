@@ -4,12 +4,14 @@ const express = require("express");
 const mongoose = require("mongoose");
 const SubTask = require("../models/subtask");
 const Task = require("../models/task");
+const auth = require('../middlewares/auth')
 const router = express.Router();
 
-router.post("user/signup", async (req, res) => {
+router.post("/user/signup", async (req, res) => {
   try {
-    const { id, phone_number } = req.body;
+    const {name, id, phone_number } = req.body;
     const newUser = new User({
+      name,
       id,
       phone_number,
     });
@@ -30,9 +32,9 @@ router.post("user/signup", async (req, res) => {
   }
 });
 
-router.post("user/login", async (req, res) => {
+router.post("/user/login",async (req, res) => {
   try {
-    const { phone_number } = req.body;
+    const {name, phone_number } = req.body;
     const user = await User.findOne({ phone_number });
     if (!user) {
       return res.status(400).json({ message: "User not found" });
@@ -56,7 +58,7 @@ router.post("user/login", async (req, res) => {
   }
 });
 
-router.get("/users/:userId/subtasks", async (req, res) => {
+router.get("/users/:userId/subtasks",auth ,async (req, res) => {
   try {
     const { userId } = req.params;
     const { task_id } = req.query;
@@ -80,11 +82,10 @@ router.get("/users/:userId/subtasks", async (req, res) => {
   }
 });
 
-// Set default pagination values
 const DEFAULT_PAGE_SIZE = 10;
-const MAX_PAGE_SIZE = 50; // Consider adjusting based on performance and resource usage
+const MAX_PAGE_SIZE = 50; 
 
-router.get("/users/:userId/tasks", async (req, res) => {
+router.get("/users/:userId/tasks",auth ,async (req, res) => {
   try {
     const { userId } = req.params;
     const {
@@ -94,11 +95,10 @@ router.get("/users/:userId/tasks", async (req, res) => {
       pageSize = DEFAULT_PAGE_SIZE,
     } = req.query;
 
-    // Build query object with optional filters
-    let query = { userId }; // Start with base user ID filter
+    let query = { userId }; 
 
     if (priority) {
-      // Validate priority value
+      
       if (!priority.match(/^[0-3]$/)) {
         return res
           .status(400)
@@ -114,21 +114,21 @@ router.get("/users/:userId/tasks", async (req, res) => {
           .status(400)
           .json({ message: "Invalid due date format. Use YYYY-MM-DD format" });
       }
-      query.dueDate = { $gte: new Date(dueDate) }; // Greater than or equal to specified date
+      query.dueDate = { $gte: new Date(dueDate) }; 
     }
 
-    // Handle pagination with appropriate sanitization
+    
     const sanitizedPageSize = Math.min(parseInt(pageSize), MAX_PAGE_SIZE);
     const skip = (page - 1) * sanitizedPageSize;
     
-    // Execute the query with sorting and pagination
+    
     const tasks = await Task.find(query, null, {
       skip,
       limit: sanitizedPageSize,
       sort: { createdAt: -1 },
     });
 
-    // Count total tasks for pagination metadata
+    
     const totalTasks = await Task.countDocuments(query);
 
     res.json({
